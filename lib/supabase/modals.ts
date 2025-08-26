@@ -27,4 +27,8 @@ export interface Task {
   priority?: "low" | "medium" | "high";
   sort_order: number;
   column_id: number;
+  board_id: number;
+}
+export interface ColumnWithTasks extends Column {
+  tasks: Task[];
 }

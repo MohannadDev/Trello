@@ -1,4 +1,4 @@
-import { Board, Column } from "./supabase/modals";
+import { Board, Column, Task } from "./supabase/modals";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 export const boardService = {
@@ -32,6 +32,21 @@ export const boardService = {
       .single();
     if (error) throw error;
     return data;
+  },
+  async updateBoard(
+    supabase: SupabaseClient,
+    boardId: string,
+    updates: Partial<Board>
+  ): Promise<Board> {
+    const { data, error } = await supabase
+      .from("boards")
+      .update({ ...updates, updated_at: new Date().toISOString })
+      .eq("id", boardId)
+      .single();
+    //   .select();
+    console.log(data);
+    if (error) throw error;
+    return data;
   }
 };
 
@@ -61,6 +76,34 @@ const columnService = {
     if (error) throw error;
     return data;
   }
+};
+
+export const taskService = {
+  async getTasksByBoard(
+    supabase: SupabaseClient,
+    boardId: string
+  ): Promise<Task[]> {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("board_id", boardId)
+      .order("sort_order", { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+    async createTask(
+    supabase: SupabaseClient,
+
+    task: Omit<Task, "id" | "created_at" | "updated_at">
+  ): Promise<Task> {
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert(task)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
 };
 export const boardDataService = {
   async createBoardWithDefaultColumns(
@@ -103,9 +146,15 @@ export const boardDataService = {
   async getBoardWithColumns(supabase: SupabaseClient, boardId: string) {
     const board = await boardService.getBoard(supabase, boardId);
     const columns = await columnService.getColumns(supabase, boardId);
+    const tasks = await taskService.getTasksByBoard(supabase, boardId);
+
+    const columnsWithTasks = columns.map((column) => ({
+      ...column,
+      tasks: tasks.filter((task) => task.column_id === column.id)
+    }));
     return {
       board,
-      columns
+      columnsWithTasks
     };
   }
 };

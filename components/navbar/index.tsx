@@ -8,13 +8,16 @@ import { DefaultNav } from "./DefaultNav";
 export interface NavbarProps {
   boardTitle?: string;
   onEditBoard?: () => void;
+  onFilterClick?: () => void;
+  filterCount?: number;
+
 }
 
 const Navbar = (props: NavbarProps) => {
   const pathname = usePathname();
 
   const isDashboardPage = pathname === "/dashboard";
-  const isBoardPage = pathname.startsWith("/board/");
+  const isBoardPage = pathname.startsWith("/boards/");
 
   if (isDashboardPage) {
     return <DashboardNav />;

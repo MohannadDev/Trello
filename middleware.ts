@@ -1,12 +1,18 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware } from '@clerk/nextjs/server'
 
-export default clerkMiddleware();
+export default clerkMiddleware()
 
 export const config = {
+    runtime: 'experimental-edge',
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    // Only run on specific auth-related paths
+    '/(api|trpc)/(.*)',
+    '/dashboard(.*)',
+    '/boards(.*)',
+    '/sign-in(.*)',
+    '/sign-up(.*)',
+    // Exclude static files and Next.js internals
+    '/((?!_next|.*\.(?:jpg|jpeg|gif|png|svg|webp|js|css|woff|woff2)).*)',
   ],
-};
+}
+
