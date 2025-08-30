@@ -154,8 +154,8 @@ const DashboardPage = () => {
               </h2>
               <p className="text-gray-600">Manage your projects and tasks</p>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0">
-              <div className="flex items-center space-x-2 bg-white border p-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+              <div className="flex items-center space-x-2 bg-white border p-1 rounded">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"

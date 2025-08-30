@@ -1,7 +1,7 @@
 "use client";
 import DroppableColumn from "@/components/draggable-column";
 import Navbar from "@/components/navbar";
-import SortableTask from "@/components/sortable-task";
+import SortableTask, { TaskOverlay } from "@/components/sortable-task";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,20 +21,69 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBoard } from "@/lib/hooks/useBoard";
+import { Column, ColumnWithTasks, Task } from "@/lib/supabase/modals";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  rectIntersection,
+  useSensor,
+  useSensors
+} from "@dnd-kit/core";
+import { SortableContext } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { use, useState } from "react";
+
 export default function BoardPage({
   params
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: number }>;
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [newColor, setNewColor] = useState("bg-blue-500");
+  const [newColor, setNewColor] = useState("");
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isCreatingColumn, setIsCreatingColumn] = useState(false);
+  const [isEditingColumn, setIsEditingColumn] = useState(false);
+
+  const [newColumnTitle, setNewColumnTitle] = useState("");
+  const [editingColumnTitle, setEditingColumnTitle] = useState("");
+  const [editingColumn, setEditingColumn] = useState<ColumnWithTasks | null>(
+    null
+  );
+  const [filters, setFilters] = useState({
+    priority: [] as string[],
+    assignee: [] as string[],
+    dueDate: null as string | null
+  });
+
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
   const { id } = use(params);
-  const { board, columns, updateBoard, createRealTask, isLoading, error } =
-    useBoard(id);
+  const {
+    board,
+    columns,
+    updateBoard,
+    createRealTask,
+    setColumns,
+    createColumn,
+    updateColumn,
+    moveTask,
+    isLoading,
+    error
+  } = useBoard(Number(id));
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        //todo
+        distance: 2
+      }
+    })
+  );
 
   async function handleUpdateBoard(e: React.FormEvent) {
     e.preventDefault();
@@ -49,23 +98,29 @@ export default function BoardPage({
       throw error;
     }
   }
-  async function createTask(taskData: {
-    board_id: number;
-    title: string;
-    description?: string;
-    assignee?: string;
-    dueDate?: string;
-    priority: "low" | "medium" | "high";
-  }) {
-    const targetColumn = columns[0];
+  async function createTask(
+    taskData: {
+      board_id: number;
+      title: string;
+      description?: string;
+      assignee?: string;
+      dueDate?: string;
+      priority: "low" | "medium" | "high";
+    },
+    columnId?: number
+  ) {
+    const targetColumn = columnId || columns[0].id;
     if (!targetColumn) {
       throw new Error("No column available to add task");
     }
 
-    await createRealTask(targetColumn.id, taskData);
+    await createRealTask(targetColumn, taskData);
   }
-  // todo
-  async function handleCreateTask(e: React.FormEvent<HTMLFormElement>) {
+  // todo optomize this shit
+  async function handleCreateTask(
+    e: React.FormEvent<HTMLFormElement>,
+    columnId?: number
+  ) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const taskData = {
@@ -79,7 +134,7 @@ export default function BoardPage({
     };
 
     if (taskData.title.trim()) {
-      await createTask(taskData);
+      await createTask(taskData, columnId);
 
       const trigger = document.querySelector(
         '[data-state="open"'
@@ -87,6 +142,178 @@ export default function BoardPage({
       if (trigger) trigger.click();
     }
   }
+
+  function handleDragStart(event: DragStartEvent) {
+    // todo: as string
+    const taskId = event.active.id;
+    const task = columns
+      .flatMap((col) => col.tasks)
+      .find((task) => task.id === taskId);
+
+    if (task) {
+      setActiveTask(task);
+    }
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    const sourceColumn = columns.find((col) =>
+      col.tasks.some((task) => task.id === activeId)
+    );
+
+    const targetColumn = columns.find((col) =>
+      col.tasks.some((task) => task.id === overId)
+    );
+
+    if (!sourceColumn || !targetColumn) return;
+
+    if (sourceColumn.id === targetColumn.id) {
+      const activeIndex = sourceColumn.tasks.findIndex(
+        (task) => task.id === activeId
+      );
+
+      const overIndex = targetColumn.tasks.findIndex(
+        (task) => task.id === overId
+      );
+
+      if (activeIndex !== overIndex) {
+        setColumns((prev: ColumnWithTasks[]) => {
+          const newColumns = [...prev];
+          const column = newColumns.find((col) => col.id === sourceColumn.id);
+          if (column) {
+            const tasks = [...column.tasks];
+            const [removed] = tasks.splice(activeIndex, 1);
+            tasks.splice(overIndex, 0, removed);
+            column.tasks = tasks;
+          }
+          return newColumns;
+        });
+      }
+    }
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over) return;
+
+    const taskId = active.id;
+    const overId = over.id;
+
+    const targetColumn = columns.find((col) => col.id === overId);
+    if (targetColumn) {
+      const sourceColumn = columns.find((col) =>
+        col.tasks.some((task) => task.id === taskId)
+      );
+
+      if (sourceColumn && sourceColumn.id !== targetColumn.id) {
+        await moveTask(
+          Number(taskId),
+          targetColumn.id,
+          targetColumn.tasks.length
+        );
+      }
+    } else {
+      // Check to see if were dropping on another task
+      const sourceColumn = columns.find((col) =>
+        col.tasks.some((task) => task.id === taskId)
+      );
+
+      const targetColumn = columns.find((col) =>
+        col.tasks.some((task) => task.id === overId)
+      );
+
+      if (sourceColumn && targetColumn) {
+        const oldIndex = sourceColumn.tasks.findIndex(
+          (task) => task.id === taskId
+        );
+
+        const newIndex = targetColumn.tasks.findIndex(
+          (task) => task.id === overId
+        );
+
+        if (oldIndex !== newIndex) {
+          // await moveTask(taskId, targetColumn.id, newIndex);
+          await moveTask(Number(taskId), targetColumn.id, newIndex);
+        }
+      }
+    }
+  }
+
+  async function handleCreateColumn(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!newColumnTitle.trim()) return;
+
+    await createColumn(newColumnTitle.trim());
+
+    setNewColumnTitle("");
+    setIsCreatingColumn(false);
+  }
+
+  async function handleUpdateColumn(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!editingColumnTitle.trim() || !editingColumn) return;
+
+    await updateColumn(editingColumn.id, editingColumnTitle.trim());
+
+    setEditingColumnTitle("");
+    setIsEditingColumn(false);
+    setEditingColumn(null);
+  }
+
+  function handleEditColumn(column: ColumnWithTasks) {
+    setIsEditingColumn(true);
+    setEditingColumn(column);
+    setEditingColumnTitle(column.title);
+  }
+  function handleFilterChange(
+    type: "priority" | "assignee" | "dueDate",
+    value: string | string[] | null
+  ) {
+    setFilters((prev) => ({
+      ...prev,
+      [type]: value
+    }));
+  }
+
+  function clearFilters() {
+    setFilters({
+      priority: [] as string[],
+      assignee: [] as string[],
+      dueDate: null as string | null
+    });
+  }
+  const filteredColumns = columns.map((column) => ({
+    ...column,
+    tasks: column.tasks.filter((task) => {
+      // Filter by priority
+      if (
+        filters.priority.length > 0 &&
+        !filters.priority.includes(task.priority || "")
+      ) {
+        return false;
+      }
+
+      // Filter by due date
+
+      if (filters.dueDate && task.due_date) {
+        const taskDate = new Date(task.due_date).toDateString();
+        const filterDate = new Date(filters.dueDate).toDateString();
+
+        if (taskDate !== filterDate) {
+          return false;
+        }
+      }
+
+      return true;
+    })
+  }));
 
   if (isLoading) {
     return (
@@ -113,11 +340,11 @@ export default function BoardPage({
             setIsEditingTitle(true);
           }}
           onFilterClick={() => setIsFilterOpen(true)}
-          // filterCount={Object.values(filters).reduce(
-          //   (count, v) =>
-          //     count + (Array.isArray(v) ? v.length : v !== null ? 1 : 0),
-          //   0
-          // )}
+          filterCount={Object.values(filters).reduce(
+            (count, v) =>
+              count + (Array.isArray(v) ? v.length : v !== null ? 1 : 0),
+            0
+          )}
         />
 
         <Dialog open={isEditingTitle} onOpenChange={setIsEditingTitle}>
@@ -195,22 +422,21 @@ export default function BoardPage({
                 <div className="flex flex-wrap gap-2">
                   {["low", "medium", "high"].map((priority, key) => (
                     <Button
-                      //   onClick={() => {
-                      //     const newPriorities = filters.priority.includes(
-                      //       priority
-                      //     )
-                      //       ? filters.priority.filter((p) => p !== priority)
-                      //       : [...filters.priority, priority];
+                      onClick={() => {
+                        const newPriorities = filters.priority.includes(
+                          priority
+                        )
+                          ? filters.priority.filter((p) => p !== priority)
+                          : [...filters.priority, priority];
 
-                      //     handleFilterChange("priority", newPriorities);
-                      //   }}
-                      //   variant={
-                      //     filters.priority.includes(priority)
-                      //       ? "default"
-                      //       : "outline"
-                      //   }
-                      //   size="sm"
-                      //
+                        handleFilterChange("priority", newPriorities);
+                      }}
+                      variant={
+                        filters.priority.includes(priority)
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
                       key={key}
                     >
                       {priority.charAt(0).toUpperCase() + priority.slice(1)}
@@ -223,10 +449,10 @@ export default function BoardPage({
                 <Label>Due Date</Label>
                 <Input
                   type="date"
-                  // value={filters.dueDate || ""}
-                  // onChange={(e) =>
-                  //   handleFilterChange("dueDate", e.target.value || null)
-                  // }
+                  value={filters.dueDate || ""}
+                  onChange={(e) =>
+                    handleFilterChange("dueDate", e.target.value || null)
+                  }
                 />
               </div>
 
@@ -234,7 +460,7 @@ export default function BoardPage({
                 <Button
                   type="button"
                   variant={"outline"}
-                  // onClick={clearFilters}
+                  onClick={clearFilters}
                 >
                   Clear Filters
                 </Button>
@@ -332,13 +558,14 @@ export default function BoardPage({
 
           {/* Board columns */}
 
-          {/* <DndContext
+          <DndContext
             sensors={sensors}
             collisionDetection={rectIntersection}
+            // todo
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
-          > */}
+          >
             <div
               className="flex flex-col lg:flex-row lg:space-x-6 lg:overflow-x-auto 
             lg:pb-6 lg:px-2 lg:-mx-2 lg:[&::-webkit-scrollbar]:h-2 
@@ -346,6 +573,7 @@ export default function BoardPage({
             lg:[&::-webkit-scrollbar-thumb]:bg-gray-300 lg:[&::-webkit-scrollbar-thumb]:rounded-full 
             space-y-4 lg:space-y-0"
             >
+              {/* filteredColumns */}
               {filteredColumns.map((column, key) => (
                 <DroppableColumn
                   key={key}
@@ -355,7 +583,7 @@ export default function BoardPage({
                 >
                   <SortableContext
                     items={column.tasks.map((task) => task.id)}
-                    strategy={verticalListSortingStrategy}
+                    // strategy={verticalListSortingStrategy}
                   >
                     <div className="space-y-3">
                       {column.tasks.map((task, key) => (
@@ -370,20 +598,89 @@ export default function BoardPage({
                 <Button
                   variant="outline"
                   className="w-full h-full min-h-[200px] border-dashed border-2 text-gray-500 hover:text-gray-700"
-                  // onClick={() => setIsCreatingColumn(true)}
+                  onClick={() => setIsCreatingColumn(true)}
                 >
                   <Plus />
                   Add another list
                 </Button>
               </div>
 
-              {/* <DragOverlay>
+              <DragOverlay>
                 {activeTask ? <TaskOverlay task={activeTask} /> : null}
-              </DragOverlay> */}
+              </DragOverlay>
             </div>
-          {/* </DndContext> */}
+          </DndContext>
         </div>
       </div>
+      <Dialog open={isCreatingColumn} onOpenChange={setIsCreatingColumn}>
+        <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Column</DialogTitle>
+            <p className="text-sm text-gray-600">
+              Add new column to organize your tasks
+            </p>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={handleCreateColumn}>
+            <div className="space-y-2">
+              <Label>Column Title</Label>
+              <Input
+                id="columnTitle"
+                value={newColumnTitle}
+                onChange={(e) => setNewColumnTitle(e.target.value)}
+                placeholder="Enter column title..."
+                required
+              />
+            </div>
+            <div className="space-x-2 flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setIsCreatingColumn(false)}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Create Column</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditingColumn} onOpenChange={setIsEditingColumn}>
+        <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Column</DialogTitle>
+            <p className="text-sm text-gray-600">
+              Update the title of your column
+            </p>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={handleUpdateColumn}>
+            <div className="space-y-2">
+              <Label>Column Title</Label>
+              <Input
+                id="columnTitle"
+                value={editingColumnTitle}
+                onChange={(e) => setEditingColumnTitle(e.target.value)}
+                placeholder="Enter column title..."
+                required
+              />
+            </div>
+            <div className="space-x-2 flex justify-end">
+              <Button
+                type="button"
+                onClick={() => {
+                  setIsEditingColumn(false);
+                  setEditingColumnTitle("");
+                  setEditingColumn(null);
+                }}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Edit Column</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

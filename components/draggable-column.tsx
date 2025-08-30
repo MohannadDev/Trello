@@ -2,41 +2,55 @@ import { ColumnWithTasks, Task } from "@/lib/supabase/modals";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { MoreHorizontal, Plus } from "lucide-react";
-import { Dialog } from "@radix-ui/react-dialog";
-import { DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from "./ui/dialog";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "./ui/select";
+import { useDroppable } from "@dnd-kit/core";
+import { FormEvent } from "react";
 
 export default function DroppableColumn({
   column,
   children,
   onCreateTask,
-  onEditColumn,
+  onEditColumn
 }: {
   column: ColumnWithTasks;
   children: React.ReactNode;
-  // todo 
-  onCreateTask: (taskData: unknown) => Promise<void>;
+  // todo
+  onCreateTask: (taskData: FormEvent<HTMLFormElement>, columnId: number) => Promise<void>;
+
   onEditColumn: (column: ColumnWithTasks) => void;
 }) {
-//   const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+
+
+
   return (
     <div
-    //   ref={setNodeRef}
-      className={`w-full lg:flex-shrink-0 lg:w-80 
-       
-      `}
-    //    ${
-    //     isOver ? "bg-blue-50 rounded-lg" : ""
-    //   }
+      ref={setNodeRef}
+      className={`w-full lg:flex-shrink-0 lg:w-80 ${
+        isOver && "bg-blue-50 rounded-lg"
+      } `}
     >
       <div
-        className={`bg-white rounded-lg shadow-sm border `}
-        // ${
-        //   isOver ? "ring-2 ring-blue-300" : ""
-        // }
+        className={`bg-white rounded-lg shadow-sm border         ${
+          isOver ? "ring-2 ring-blue-300" : ""
+        } `}
       >
         {/* Column Header */}
         <div className="p-3 sm:p-4 border-b">
@@ -63,7 +77,7 @@ export default function DroppableColumn({
         {/* column content */}
         <div className="p-2">
           {children}
-          <DialogClose>
+          <Dialog>
             <DialogTrigger asChild>
               <Button
                 variant="ghost"
@@ -76,63 +90,68 @@ export default function DroppableColumn({
             <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
               <DialogHeader>
                 <DialogTitle>Create New Task</DialogTitle>
-                <p className="text-sm text-gray-600">Add a task to the board</p>
+                <p className="text-sm text-gray-600">
+                  Add a task to the board
+                </p>
               </DialogHeader>
 
-              <form className="space-y-4" onSubmit={onCreateTask}>
-                <div className="space-y-2">
-                  <Label>Title *</Label>
-                  <Input
-                    id="title"
-                    name="title"
-                    placeholder="Enter task title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    placeholder="Enter task description"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Assignee</Label>
-                  <Input
-                    id="assignee"
-                    name="assignee"
-                    placeholder="Who should do this?"
-                  />
-                </div>
+                <form className="space-y-4" onSubmit={(e) => onCreateTask(e, column.id)}>
+                  <div className="space-y-2">
+                    <Label>Title *</Label>
+                    <Input
+                      id="title"
+                      name="title"
+                      placeholder="Enter task title"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      placeholder="Enter task description"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Assignee</Label>
+                    <Input
+                      id="assignee"
+                      name="assignee"
+                      placeholder="Who should do this?"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Priority</Label>
-                  <Select name="priority" defaultValue="medium">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["low", "medium", "high"].map((priority, key) => (
-                        <SelectItem key={key} value={priority}>
-                          {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-2">
+                    <Label>Priority</Label>
+                    <Select name="priority" defaultValue="medium">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["low", "medium", "high"].map((priority, key) => (
+                          <SelectItem key={key} value={priority}>
+                            {priority.charAt(0).toUpperCase() +
+                              priority.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Due Date</Label>
-                  <Input type="date" id="dueDate" name="dueDate" />
-                </div>
+                  <div className="space-y-2">
+                    <Label>Due Date</Label>
+                    <Input type="date" id="dueDate" name="dueDate" />
+                  </div>
 
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button type="submit">Create Task</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </DialogClose>
+                  <div className="flex justify-end space-x-2 pt-4">
+                    {/* <DialogClose asChild> */}
+                      <Button type="submit">Create Task</Button>
+                    {/* </DialogClose> */}
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
         </div>
       </div>
     </div>
