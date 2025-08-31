@@ -1,4 +1,4 @@
-import { ColumnWithTasks, Task } from "@/lib/supabase/modals";
+import { ColumnWithTasks, Task } from "@/lib/supabase/models";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { MoreHorizontal, Plus } from "lucide-react";

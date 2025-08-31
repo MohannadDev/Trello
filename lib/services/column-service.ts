@@ -1,4 +1,4 @@
-import { Column } from "../supabase/modals";
+import { Column } from "../supabase/models";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export const columnService = {

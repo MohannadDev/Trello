@@ -1,4 +1,4 @@
-import { Board, Column, Task } from "./supabase/modals";
+import { Board, Column, Task } from "./supabase/models";
 import {  SupabaseClient } from "@supabase/supabase-js";
 
 export const boardService = {

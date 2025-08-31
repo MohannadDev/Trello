@@ -7,7 +7,7 @@ import {
   columnService,
   taskService
 } from "../services";
-import { Board, ColumnWithTasks, Task } from "../supabase/modals";
+import { Board, ColumnWithTasks, Task } from "../supabase/models";
 import { useSupabase } from "../supabase/supabase-provider";
 export function useBoard(boardId: number) {
   const { user } = useUser();

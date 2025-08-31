@@ -1,4 +1,4 @@
-import { Task } from "@/lib/supabase/modals";
+import { Task } from "@/lib/supabase/models";
 import { Card, CardContent } from "./ui/card";
 import { Calendar, User } from "lucide-react";
 import { CSS } from "@dnd-kit/utilities";

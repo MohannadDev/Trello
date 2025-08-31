@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBoard } from "@/lib/hooks/useBoard";
-import { Column, ColumnWithTasks, Task } from "@/lib/supabase/modals";
+import {  ColumnWithTasks, Task } from "@/lib/supabase/models";
 import {
   DndContext,
   DragEndEvent,

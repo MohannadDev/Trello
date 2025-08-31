@@ -2,7 +2,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState, useCallback } from "react";
 import { boardDataService, boardService } from "../services";
-import { Board } from "../supabase/modals";
+import { Board } from "../supabase/models";
 import { useSupabase } from "../supabase/supabase-provider";
 
 export function useBoards() {
@@ -28,7 +28,7 @@ export function useBoards() {
   async function createBoard(boardData: {
     title: string;
     description?: string;
-    color: string;
+    color?: string;
   }) {
     if (!user) throw new Error("User not authenticated");
     try {
@@ -38,8 +38,9 @@ export function useBoards() {
         supabase!,
         {
           ...boardData,
-          userId: user.id
-        }
+          userId: user.id,
+          color: boardData.color || 'bg-blue-500',}
+
       );
       setBoards((prev) => [newBoard, ...prev]);
     } catch (err) {
