@@ -7,7 +7,13 @@ interface PlanContextType {
   hasProPlan: boolean;
   hasEnterprisePlan: boolean;
 }
-const PlanContext = createContext<PlanContextType | undefined>(undefined);
+
+// Provide default values
+const PlanContext = createContext<PlanContextType>({
+  isFreeUser: true,
+  hasProPlan: false,
+  hasEnterprisePlan: false
+});
 
 export default function PlanProvider({
   children,
@@ -31,6 +37,7 @@ export default function PlanProvider({
     </PlanContext.Provider>
   );
 }
+
 export const usePlan = () => {
   const context = useContext(PlanContext);
   if (context === undefined) {

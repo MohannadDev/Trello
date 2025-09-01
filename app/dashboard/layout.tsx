@@ -1,14 +1,16 @@
-import PlanProvider from "@/lib/contexts/plan-context";
-import { auth } from "@clerk/nextjs/server";
+"use client";
 
-export default async function DashboardLayout({
+import PlanProvider from "@/lib/contexts/plan-context";
+import { useAuth } from "@clerk/nextjs";
+
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { has } = await auth();
-  const hasProPlan = has({ plan: "pro_user" });
-  const hasEnterprisePlan = has({ plan: "enterprise_user" });
+  const { has } = useAuth();
+  const hasProPlan = has?.({ plan: "pro_user" }) || false;
+  const hasEnterprisePlan = has?.({ plan: "enterprise_user" }) || false;
 
   return (
     <PlanProvider hasProPlan={hasProPlan} hasEnterprisePlan={hasEnterprisePlan}>
