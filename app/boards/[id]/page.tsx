@@ -9,17 +9,13 @@ import { useBoardDialogs } from "@/lib/hooks/useBoardDialogs";
 import { useBoardFilters } from "@/lib/hooks/useBoardFilters";
 import { useBoardDragDrop } from "@/lib/hooks/useBoardDragDrop";
 import { ColumnWithTasks } from "@/lib/supabase/models";
-import {
-  DndContext,
-  DragOverlay,
-  rectIntersection,
-} from "@dnd-kit/core";
+import { DndContext, DragOverlay, rectIntersection } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { use } from "react";
 
 export default function BoardPage({
-  params,
+  params
 }: {
   params: Promise<{ id: number }>;
 }) {
@@ -34,26 +30,55 @@ export default function BoardPage({
     updateColumn,
     moveTask,
     isLoading,
-    error,
+    error
   } = useBoard(Number(id));
 
-  const dialogs = useBoardDialogs();
+  const {
+    isEditingTitle,
+    isFilterOpen,
+    isCreatingColumn,
+    isEditingColumn,
+    isCreatingTaskDialogOpen,
+    newTitle,
+    newColor,
+    newColumnTitle,
+    editingColumnTitle,
+    editingColumn,
+    setIsFilterOpen,
+    setIsCreatingColumn,
+    setNewTitle,
+    setNewColor,
+    setNewColumnTitle,
+    setEditingColumnTitle,
+    openEditBoard,
+    closeEditBoard,
+    openEditColumn,
+    closeEditColumn,
+    closeCreateColumn,
+    openCreateTask,
+    closeCreateTask
+  } = useBoardDialogs();
   const { filteredColumns, filterCount, handleFilterChange, clearFilters } =
     useBoardFilters(columns);
-  const { activeTask, sensors, handleDragStart, handleDragOver, handleDragEnd } =
-    useBoardDragDrop(columns, setColumns, moveTask);
+  const {
+    activeTask,
+    sensors,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd
+  } = useBoardDragDrop(columns, setColumns, moveTask);
 
   // Event Handlers
   const handleUpdateBoard = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!dialogs.newTitle.trim() || !board) return;
-    
+    if (!newTitle.trim() || !board) return;
+
     try {
       await updateBoard(id, {
-        title: dialogs.newTitle.trim(),
-        color: dialogs.newColor || board.color,
+        title: newTitle.trim(),
+        color: newColor || board.color
       });
-      dialogs.closeEditBoard();
+      closeEditBoard();
     } catch (error) {
       console.error("Failed to update board:", error);
     }
@@ -72,7 +97,7 @@ export default function BoardPage({
       assignee: (formData.get("assignee") as string) || undefined,
       dueDate: (formData.get("dueDate") as string) || undefined,
       priority:
-        (formData.get("priority") as "low" | "medium" | "high") || "medium",
+        (formData.get("priority") as "low" | "medium" | "high") || "medium"
     };
 
     if (taskData.title.trim()) {
@@ -84,9 +109,8 @@ export default function BoardPage({
 
       try {
         await createRealTask(targetColumn, taskData);
-        // Close dialog
-        const trigger = document.querySelector('[data-state="open"') as HTMLElement;
-        if (trigger) trigger.click();
+        // Close dialog using the hook function
+        closeCreateTask();
       } catch (error) {
         console.error("Failed to create task:", error);
       }
@@ -95,11 +119,11 @@ export default function BoardPage({
 
   const handleCreateColumn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!dialogs.newColumnTitle.trim()) return;
+    if (!newColumnTitle.trim()) return;
 
     try {
-      await createColumn(dialogs.newColumnTitle.trim());
-      dialogs.closeCreateColumn();
+      await createColumn(newColumnTitle.trim());
+      closeCreateColumn();
     } catch (error) {
       console.error("Failed to create column:", error);
     }
@@ -107,21 +131,23 @@ export default function BoardPage({
 
   const handleUpdateColumn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!dialogs.editingColumnTitle.trim() || !dialogs.editingColumn) return;
+    if (!editingColumnTitle.trim() || !editingColumn) return;
 
     try {
-      await updateColumn(dialogs.editingColumn.id, dialogs.editingColumnTitle.trim());
-      dialogs.closeEditColumn();
+      await updateColumn(
+        editingColumn.id,
+        editingColumnTitle.trim()
+      );
+      closeEditColumn();
     } catch (error) {
       console.error("Failed to update column:", error);
     }
   };
 
   const handleEditColumn = (column: ColumnWithTasks) => {
-    dialogs.openEditColumn(column);
+    openEditColumn(column);
   };
 
-  // Loading and Error States
   if (isLoading) {
     return (
       <div className="h-dvh flex justify-center items-center">
@@ -129,7 +155,6 @@ export default function BoardPage({
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="h-dvh flex justify-center items-center">
@@ -142,39 +167,43 @@ export default function BoardPage({
     <div className="min-h-screen bg-gray-50">
       <Navbar
         boardTitle={board?.title}
-        onEditBoard={() => dialogs.openEditBoard(board?.title ?? "", board?.color ?? "")}
-        onFilterClick={() => dialogs.setIsFilterOpen(true)}
+        onEditBoard={() =>
+          openEditBoard(board?.title ?? "", board?.color ?? "")
+        }
+        onFilterClick={() => setIsFilterOpen(true)}
         filterCount={filterCount}
       />
 
       <BoardDialogs
-        isEditingTitle={dialogs.isEditingTitle}
-        newTitle={dialogs.newTitle}
-        newColor={dialogs.newColor}
-        onTitleChange={dialogs.setNewTitle}
-        onColorChange={dialogs.setNewColor}
-        onCloseEditBoard={dialogs.closeEditBoard}
+        isEditingTitle={isEditingTitle}
+        isCreatingTaskDialogOpen={isCreatingTaskDialogOpen}
+        onCloseCreateTask={closeCreateTask}
+        newTitle={newTitle}
+        newColor={newColor}
+        onTitleChange={setNewTitle}
+        onColorChange={setNewColor}
+        onCloseEditBoard={closeEditBoard}
         onUpdateBoard={handleUpdateBoard}
-        isFilterOpen={dialogs.isFilterOpen}
+        isFilterOpen={isFilterOpen}
         filters={{
           priority: [],
           assignee: [],
-          dueDate: null,
+          dueDate: null
         }}
         onFilterChange={handleFilterChange}
         onClearFilters={clearFilters}
-        onCloseFilter={() => dialogs.setIsFilterOpen(false)}
+        onCloseFilter={() => setIsFilterOpen(false)}
         onCreateTask={handleCreateTask}
-        isCreatingColumn={dialogs.isCreatingColumn}
-        newColumnTitle={dialogs.newColumnTitle}
-        onColumnTitleChange={dialogs.setNewColumnTitle}
-        onCloseCreateColumn={dialogs.closeCreateColumn}
+        isCreatingColumn={isCreatingColumn}
+        newColumnTitle={newColumnTitle}
+        onColumnTitleChange={setNewColumnTitle}
+        onCloseCreateColumn={closeCreateColumn}
         onCreateColumn={handleCreateColumn}
-        isEditingColumn={dialogs.isEditingColumn}
-        editingColumnTitle={dialogs.editingColumnTitle}
-        editingColumn={dialogs.editingColumn}
-        onEditingColumnTitleChange={dialogs.setEditingColumnTitle}
-        onCloseEditColumn={dialogs.closeEditColumn}
+        isEditingColumn={isEditingColumn}
+        editingColumnTitle={editingColumnTitle}
+        editingColumn={editingColumn}
+        onEditingColumnTitleChange={setEditingColumnTitle}
+        onCloseEditColumn={closeEditColumn}
         onUpdateColumn={handleUpdateColumn}
       />
 
@@ -188,6 +217,10 @@ export default function BoardPage({
               {columns.reduce((sum, col) => sum + col.tasks.length, 0)}
             </div>
           </div>
+          <Button className="w-full sm:w-auto" onClick={openCreateTask}>
+            <Plus />
+            Add Task
+          </Button>
         </div>
 
         {/* Board columns */}
@@ -220,7 +253,7 @@ export default function BoardPage({
               <Button
                 variant="outline"
                 className="w-full h-full min-h-[200px] border-dashed border-2 text-gray-500 hover:text-gray-700"
-                onClick={() => dialogs.setIsCreatingColumn(true)}
+                onClick={openCreateTask}
               >
                 <Plus />
                 Add another list

@@ -6,6 +6,7 @@ export function useBoardDialogs() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCreatingColumn, setIsCreatingColumn] = useState(false);
   const [isEditingColumn, setIsEditingColumn] = useState(false);
+  const [isCreatingTaskDialogOpen, setIsCreatingTaskDialogOpen] = useState(false);
   
   const [newTitle, setNewTitle] = useState("");
   const [newColor, setNewColor] = useState("");
@@ -42,12 +43,21 @@ export function useBoardDialogs() {
     setNewColumnTitle("");
   };
 
+  const openCreateTask = () => {
+    setIsCreatingTaskDialogOpen(true);
+  };
+
+  const closeCreateTask = () => {
+    setIsCreatingTaskDialogOpen(false);
+  };
+
   return {
     // States
     isEditingTitle,
     isFilterOpen,
     isCreatingColumn,
     isEditingColumn,
+    isCreatingTaskDialogOpen, 
     newTitle,
     newColor,
     newColumnTitle,
@@ -57,6 +67,7 @@ export function useBoardDialogs() {
     // Setters
     setIsFilterOpen,
     setIsCreatingColumn,
+    setIsCreatingTaskDialogOpen, 
     setNewTitle,
     setNewColor,
     setNewColumnTitle,
@@ -68,5 +79,7 @@ export function useBoardDialogs() {
     openEditColumn,
     closeEditColumn,
     closeCreateColumn,
+    openCreateTask, 
+    closeCreateTask, 
   };
 }

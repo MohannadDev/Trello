@@ -4,7 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,10 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { ColumnWithTasks, FilterState } from "@/lib/supabase/models";
-
-
 
 interface BoardDialogsProps {
   // Edit Board Dialog
@@ -35,12 +33,18 @@ interface BoardDialogsProps {
   // Filter Dialog
   isFilterOpen: boolean;
   filters: FilterState;
-  onFilterChange: (type: keyof FilterState, value: string | string[] | null) => void;
+  onFilterChange: (
+    type: keyof FilterState,
+    value: string | string[] | null
+  ) => void;
   onClearFilters: () => void;
   onCloseFilter: () => void;
 
   // Create Task Dialog
-  onCreateTask: (e: React.FormEvent<HTMLFormElement>, columnId?: number) => void;
+  onCreateTask: (
+    e: React.FormEvent<HTMLFormElement>,
+    columnId?: number
+  ) => void;
 
   // Create Column Dialog
   isCreatingColumn: boolean;
@@ -48,7 +52,6 @@ interface BoardDialogsProps {
   onColumnTitleChange: (title: string) => void;
   onCloseCreateColumn: () => void;
   onCreateColumn: (e: React.FormEvent) => void;
-
   // Edit Column Dialog
   isEditingColumn: boolean;
   editingColumnTitle: string;
@@ -56,6 +59,10 @@ interface BoardDialogsProps {
   onEditingColumnTitleChange: (title: string) => void;
   onCloseEditColumn: () => void;
   onUpdateColumn: (e: React.FormEvent) => void;
+
+  // In the BoardDialogsProps interface
+  isCreatingTaskDialogOpen: boolean;
+  onCloseCreateTask: () => void;
 }
 
 const BOARD_COLORS = [
@@ -70,13 +77,14 @@ const BOARD_COLORS = [
   "bg-orange-500",
   "bg-teal-500",
   "bg-cyan-500",
-  "bg-emerald-500",
+  "bg-emerald-500"
 ];
 
 const PRIORITY_OPTIONS = ["low", "medium", "high"];
 
 export function BoardDialogs({
   isEditingTitle,
+  isCreatingTaskDialogOpen,
   newTitle,
   newColor,
   onTitleChange,
@@ -99,6 +107,7 @@ export function BoardDialogs({
   onEditingColumnTitleChange,
   onCloseEditColumn,
   onUpdateColumn,
+  onCloseCreateTask
 }: BoardDialogsProps) {
   return (
     <>
@@ -139,7 +148,11 @@ export function BoardDialogs({
             </div>
 
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={onCloseEditBoard}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCloseEditBoard}
+              >
                 Cancel
               </Button>
               <Button type="submit">Save Changes</Button>
@@ -170,7 +183,11 @@ export function BoardDialogs({
                         : [...filters.priority, priority];
                       onFilterChange("priority", newPriorities);
                     }}
-                    variant={filters.priority.includes(priority) ? "default" : "outline"}
+                    variant={
+                      filters.priority.includes(priority)
+                        ? "default"
+                        : "outline"
+                    }
                     size="sm"
                   >
                     {priority.charAt(0).toUpperCase() + priority.slice(1)}
@@ -184,7 +201,9 @@ export function BoardDialogs({
               <Input
                 type="date"
                 value={filters.dueDate || ""}
-                onChange={(e) => onFilterChange("dueDate", e.target.value || null)}
+                onChange={(e) =>
+                  onFilterChange("dueDate", e.target.value || null)
+                }
               />
             </div>
 
@@ -201,13 +220,10 @@ export function BoardDialogs({
       </Dialog>
 
       {/* Create Task Dialog */}
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button className="w-full sm:w-auto">
-            <Plus />
-            Add Task
-          </Button>
-        </DialogTrigger>
+      <Dialog
+        open={isCreatingTaskDialogOpen}
+        onOpenChange={() => onCloseCreateTask()}
+      >
         <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
           <DialogHeader>
             <DialogTitle>Create New Task</DialogTitle>
@@ -286,7 +302,11 @@ export function BoardDialogs({
               />
             </div>
             <div className="space-x-2 flex justify-end">
-              <Button type="button" onClick={onCloseCreateColumn} variant="outline">
+              <Button
+                type="button"
+                onClick={onCloseCreateColumn}
+                variant="outline"
+              >
                 Cancel
               </Button>
               <Button type="submit">Create Column</Button>
@@ -316,7 +336,11 @@ export function BoardDialogs({
               />
             </div>
             <div className="space-x-2 flex justify-end">
-              <Button type="button" onClick={onCloseEditColumn} variant="outline">
+              <Button
+                type="button"
+                onClick={onCloseEditColumn}
+                variant="outline"
+              >
                 Cancel
               </Button>
               <Button type="submit">Edit Column</Button>
