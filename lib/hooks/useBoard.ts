@@ -29,6 +29,7 @@ export function useBoard(boardId: number) {
         setBoard(board);
         setColumns(columnsWithTasks);
       } catch (err) {
+        console.log(err);
         setError(err instanceof Error ? err.message : "failed to load board");
       } finally {
         setIsLoading(false);

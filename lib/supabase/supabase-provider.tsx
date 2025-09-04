@@ -22,23 +22,30 @@ export default function SupabaseProvider({
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   
   useEffect(() => {
-    if (!sessionLoaded) return;
-    
-    if (session) {
-      const client = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { 
-          global: {
-            headers: {
-              Authorization: `Bearer ${session.getToken()}`
+    async function setupSupabase() {
+      if (!sessionLoaded) return;
+      
+      if (session) {
+        // Get the token asynchronously
+        const token = await session.getToken();
+        
+        const client = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          { 
+            global: {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
             }
           }
-        }
-      );
-      setSupabase(client);
+        );
+        setSupabase(client);
+      }
+      setIsLoaded(true);
     }
-    setIsLoaded(true);
+    
+    setupSupabase();
   }, [session, sessionLoaded]);
 
   return (

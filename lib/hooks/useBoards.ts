@@ -19,6 +19,7 @@ export function useBoards() {
       const boards = await boardService.getBoards(supabase, user.id);
       setBoards(boards);
     } catch (err) {
+      console.log(err);
       setError(err instanceof Error ? err.message : "failed to load boards");
     } finally {
       setIsLoading(false);
@@ -39,8 +40,8 @@ export function useBoards() {
         {
           ...boardData,
           userId: user.id,
-          color: boardData.color || 'bg-blue-500',}
-
+          color: boardData.color || "bg-blue-500"
+        }
       );
       setBoards((prev) => [newBoard, ...prev]);
     } catch (err) {
@@ -55,4 +56,3 @@ export function useBoards() {
 
   return { createBoard, isLoading, error, boards };
 }
-

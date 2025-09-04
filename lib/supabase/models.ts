@@ -32,3 +32,8 @@ export interface Task {
 export interface ColumnWithTasks extends Column {
   tasks: Task[];
 }
+export interface FilterState {
+  priority: string[];
+  assignee: string[];
+  dueDate: string | null;
+}
